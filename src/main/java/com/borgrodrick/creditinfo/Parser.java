@@ -116,7 +116,7 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("assets")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("assets")){
                 return processTable(table,assetDataWords,"total assets", "asset");
             }
         }
@@ -128,7 +128,7 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("income")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("income")){
                 return processTable(table,incomeDataWords,"", "income");
             }
 
@@ -144,7 +144,7 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("cashflow")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("cashflow")){
                 return processTable(table,cashFlowWords,"", "cashflow");
             }
 
@@ -168,7 +168,7 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("equity and liabilities")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("equity and liabilities")){
                 return processTable(table,liabilitiesDataWords,"total equity and liabilities", "liabilities");
             }
 
@@ -228,7 +228,8 @@ public class Parser {
                 for (Element td : tds) {
                     if (!isMatch && td.text().equals(tds.first().text())) {
                         for (DataWord w : dataWords) {
-                            if (td.text().toLowerCase().equals(w.Description.toLowerCase())) {
+                            String textTrimmed = td.text().toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim();
+                            if (textTrimmed.equals(w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim())) {
                                 reportItem = new ReportItem(td.text());
                                 reportItem.setDataWord(w);
                                 allMatched.add(w.getDescription().toLowerCase());
