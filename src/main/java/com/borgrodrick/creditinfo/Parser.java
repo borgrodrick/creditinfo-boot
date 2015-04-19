@@ -1,6 +1,9 @@
 package com.borgrodrick.creditinfo;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -11,12 +14,8 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Parser {
@@ -79,7 +78,7 @@ public class Parser {
 
             List<ReportItem> reportItemsAssets = processAssets(doc.select("table"), assets);
 
-            boolean x = totalAssetMatch(reportItemsAssets);
+            boolean x = totalAssetMatch(reportItemsAssets, input.getName());
 
             List<ReportItem> reportItemsLiabilities = processLiabilities(doc.select("table"), liabilities);
             List<ReportItem> reportItemsIncome = processIncome(doc.select("table"), income);
@@ -270,7 +269,9 @@ public class Parser {
         return matched;
     }
 
-    private boolean totalAssetMatch (List<ReportItem> assets){
+    private boolean totalAssetMatch (List<ReportItem> assets, String filename){
+
+        if (assets == null) return false;
 
         Optional<ReportItem> first = assets.stream().filter(x -> x.getDescription().trim().toLowerCase().contains("total assets")).findFirst();
 
@@ -279,22 +280,62 @@ public class Parser {
 
             List<HashMap<String, String>> rest = assets.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total assets")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
-            List<Boolean>  boolVals = yearlyValues.keySet().stream().map(key -> {
+
+            List<TotalReport>  reports = yearlyValues.keySet().stream().map(key -> {
+
+                        TotalReport report = new TotalReport();
+                        report.setYear(key);
+                        report.setDateProcessed(new Date());
+                        report.setDocumentName(filename);
+
                         Double yearSum = rest.stream().mapToDouble(others -> {
-                            String restValue = others.getOrDefault(key, "");
+                            String restValue = others.getOrDefault(key, "0");
+                            restValue = restValue.replaceAll("[^0-9]", "").trim();
+                            if (restValue == null || restValue.isEmpty()) restValue = "0";
                             return Double.parseDouble(restValue);
                         }).sum();
 
-                        Double actualSum = Double.parseDouble(yearlyValues.get(key));
 
-                        System.out.println("Actual sum is " + actualSum);
-                        System.out.println("Calculated SUm is " + yearSum);
-                        return actualSum == yearSum;
+                        String actualSumString = yearlyValues.get(key);
+                        actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                        if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                        Double actualSum = Double.parseDouble(actualSumString);
+
+                        report.setActualTotal(actualSum);
+                        report.setCalculatedTotal(yearSum);
+                        report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                        return report;
                     }
             ).collect(Collectors.toList());
-
+            appendToCSV(reports);
         }
 
+
+
         return false;
+    }
+
+    private void appendToCSV(List<TotalReport>  reports){
+        // create mapper and schema
+        CsvMapper mapper = new CsvMapper();
+        CsvSchema schema = mapper.schemaFor(TotalReport.class);
+        schema = schema.withColumnSeparator(',');
+
+        try {
+            // output writer
+            ObjectWriter myObjectWriter = mapper.writer(schema);
+            //File tempFile = new File("C:\\creditinfo\\report.csv");
+            PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("C:\\creditinfo\\report.csv", true)));
+            myObjectWriter.writeValue(out, reports);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (JsonGenerationException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
