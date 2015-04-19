@@ -88,4 +88,12 @@ public class ReportItem {
     public void setDataWord(DataWord dataWord) {
         this.dataWord = dataWord;
     }
+
+    public HashMap<String, String> getYearlyValues() {
+        return yearlyValues;
+    }
+
+    public void setYearlyValues(HashMap<String, String> yearlyValues) {
+        this.yearlyValues = yearlyValues;
+    }
 }

@@ -1,6 +1,7 @@
 package com.borgrodrick.creditinfo;
 
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import org.jsoup.Jsoup;
@@ -13,7 +14,10 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class Parser {
 
@@ -74,6 +78,9 @@ public class Parser {
 
 
             List<ReportItem> reportItemsAssets = processAssets(doc.select("table"), assets);
+
+            boolean x = totalAssetMatch(reportItemsAssets);
+
             List<ReportItem> reportItemsLiabilities = processLiabilities(doc.select("table"), liabilities);
             List<ReportItem> reportItemsIncome = processIncome(doc.select("table"), income);
             List<ReportItem> reportItemsCashflow = processCashflow(doc.select("table"), cashflow);
@@ -261,5 +268,33 @@ public class Parser {
             logger.info ( "  " +s );
 
         return matched;
+    }
+
+    private boolean totalAssetMatch (List<ReportItem> assets){
+
+        Optional<ReportItem> first = assets.stream().filter(x -> x.getDescription().trim().toLowerCase().contains("total assets")).findFirst();
+
+        if(first.isPresent()) {
+            HashMap<String, String> yearlyValues = first.get().getYearlyValues();
+
+            List<HashMap<String, String>> rest = assets.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total assets")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+
+            List<Boolean>  boolVals = yearlyValues.keySet().stream().map(key -> {
+                        Double yearSum = rest.stream().mapToDouble(others -> {
+                            String restValue = others.getOrDefault(key, "");
+                            return Double.parseDouble(restValue);
+                        }).sum();
+
+                        Double actualSum = Double.parseDouble(yearlyValues.get(key));
+
+                        System.out.println("Actual sum is " + actualSum);
+                        System.out.println("Calculated SUm is " + yearSum);
+                        return actualSum == yearSum;
+                    }
+            ).collect(Collectors.toList());
+
+        }
+
+        return false;
     }
 }

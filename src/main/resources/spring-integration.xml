@@ -3,18 +3,21 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:integration="http://www.springframework.org/schema/integration"
        xmlns:file="http://www.springframework.org/schema/integration/file"
+       xmlns:task="http://www.springframework.org/schema/task"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
 			http://www.springframework.org/schema/beans/spring-beans.xsd
 			http://www.springframework.org/schema/integration
 			http://www.springframework.org/schema/integration/spring-integration.xsd
 			http://www.springframework.org/schema/integration/file
-			http://www.springframework.org/schema/integration/file/spring-integration-file.xsd">
+			http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+			http://www.springframework.org/schema/task
+			http://www.springframework.org/schema/task/spring-task.xsd">
 
        <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
 
        <file:inbound-channel-adapter id="filesIn"
                                      directory="file:C:/creditinfo/input">
-              <integration:poller id="poller" fixed-delay="500"/>
+              <integration:poller id="poller" fixed-rate="100" task-executor="executor"/>
        </file:inbound-channel-adapter>
 
        <integration:service-activator input-channel="filesIn"
@@ -26,5 +29,7 @@
                                       delete-source-files="false"/>
 
        <bean id="handler" class="com.borgrodrick.creditinfo.Handler"/>
+
+        <task:executor id="executor" pool-size="1"/>
 
 </beans>
