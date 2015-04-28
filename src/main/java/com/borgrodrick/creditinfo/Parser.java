@@ -78,7 +78,8 @@ public class Parser {
 
             List<ReportItem> reportItemsAssets = processAssets(doc.select("table"), assets);
 
-            boolean x = totalAssetMatch(reportItemsAssets, input.getName());
+            //check the totals for the assets
+            totalAssetMatch(reportItemsAssets, input.getName());
 
             List<ReportItem> reportItemsLiabilities = processLiabilities(doc.select("table"), liabilities);
             List<ReportItem> reportItemsIncome = processIncome(doc.select("table"), income);
@@ -232,17 +233,26 @@ public class Parser {
                 ReportItem reportItem = null;
 
                 for (Element td : tds) {
-                    if (!isMatch && td.text().equals(tds.first().text())) {
-                        for (DataWord w : dataWords) {
-                            String textTrimmed = td.text().toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim();
-                            if (textTrimmed.equals(w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim())) {
-                                reportItem = new ReportItem(td.text());
-                                reportItem.setDataWord(w);
-                                allMatched.add(w.getDescription().toLowerCase());
-                                isMatch = true;
-                                reportItem.setTableHead(new ArrayList<String>(head));
-                            }
+                    if (!isMatch ) {
 
+                        Elements tdText = td.select("p");
+
+                        List<String> tdTextData = new ArrayList<>();
+
+                        for (Element e : tdText){
+                            tdTextData.add(e.text().toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim());
+                        }
+
+                        for (DataWord w : dataWords) {
+                            for (String textTrimmed :tdTextData){
+                                if (textTrimmed.equals(w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim())) {
+                                    reportItem = new ReportItem(textTrimmed);
+                                    reportItem.setDataWord(w);
+                                    allMatched.add(w.getDescription().toLowerCase());
+                                    isMatch = true;
+                                    reportItem.setTableHead(new ArrayList<String>(head));
+                                }
+                            }
                         }
                     } else if (isMatch){
                         reportItem.addValue(td.text().trim().replaceAll("[a-zA-Z]", "").toLowerCase());
