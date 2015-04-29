@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import org.jsoup.Jsoup;
@@ -21,15 +20,15 @@ import java.util.stream.Collectors;
 public class Parser {
 
     Logger logger = LoggerFactory.getLogger(Parser.class);
-    
+
     DateExtractor dateExtractor;
 
     private String date;
 
     List<String> allMatched = new ArrayList<String>();
 
-    public Parser (){
-        dateExtractor =  new DateExtractor();
+    public Parser() {
+        dateExtractor = new DateExtractor();
     }
 
     public List<ReportItem> parse(File input) {
@@ -46,7 +45,7 @@ public class Parser {
         try {
 
             MappingIterator<DataWord> it = mapper.reader(DataWord.class).with(schema).readValues(csvFile);
-            while  (it.hasNext()) {
+            while (it.hasNext()) {
                 DataWord row = it.next();
                 if (!(row.getDescription() == null || row.getDescription().isEmpty() || row.getDescription().equals(""))) {
                     if (row.getRegion().toLowerCase().equals("assets")) assets.add(row);
@@ -60,20 +59,19 @@ public class Parser {
 
             Document doc = Jsoup.parse(input, "UTF-8", "http://creditinfo.com/");
 
-            if (doc.text().toLowerCase().contains("financial statement")){
+            if (doc.text().toLowerCase().contains("financial statement")) {
 
                 int index = doc.text().toLowerCase().indexOf("financial statements");
                 String text = doc.text().substring(index);
 
-                if ( text.indexOf("table") != -1){
+                if (text.indexOf("table") != -1) {
                     text = text.substring(0, text.indexOf("table"));
                     date = dateExtractor.getDate(text);
 
-                    logger.info("Date is : "  + date);
+                    logger.info("Date is : " + date);
                 }
 
             }
-
 
 
             List<ReportItem> reportItemsAssets = processAssets(doc.select("table"), assets);
@@ -82,30 +80,30 @@ public class Parser {
             totalAssetMatch(reportItemsAssets, input.getName());
 
             List<ReportItem> reportItemsLiabilities = processLiabilities(doc.select("table"), liabilities);
+            totalLiabilitiesMatch(reportItemsLiabilities, input.getName());
             List<ReportItem> reportItemsIncome = processIncome(doc.select("table"), income);
             List<ReportItem> reportItemsCashflow = processCashflow(doc.select("table"), cashflow);
 
             List<ReportItem> reportItems = new ArrayList<ReportItem>();
 
 
-            logger.info("Data for file: " + input.getAbsolutePath() );
-            if (reportItemsAssets!= null){
+            logger.info("Data for file: " + input.getAbsolutePath());
+            if (reportItemsAssets != null) {
                 logger.info("  Assets:" + reportItemsAssets.size());
                 reportItems.addAll(reportItemsAssets);
             }
-            if (reportItemsLiabilities!= null){
-                logger.info("  Liabilities:"+reportItemsLiabilities.size());
+            if (reportItemsLiabilities != null) {
+                logger.info("  Liabilities:" + reportItemsLiabilities.size());
                 reportItems.addAll(reportItemsLiabilities);
             }
-            if (reportItemsIncome!= null){
-                logger.info("  Income:"+reportItemsIncome.size());
+            if (reportItemsIncome != null) {
+                logger.info("  Income:" + reportItemsIncome.size());
                 reportItems.addAll(reportItemsIncome);
             }
-            if (reportItemsCashflow!= null){
-                logger.info("    Cashflow:"+reportItemsCashflow.size());
+            if (reportItemsCashflow != null) {
+                logger.info("    Cashflow:" + reportItemsCashflow.size());
                 reportItems.addAll(reportItemsCashflow);
             }
-
 
 
             return reportItems;
@@ -123,8 +121,8 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("assets")){
-                return processTable(table,assetDataWords,"total assets", "asset");
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("assets")) {
+                return processTable(table, assetDataWords, "total assets", "asset");
             }
         }
         return null;
@@ -135,11 +133,9 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("income")){
-                return processTable(table,incomeDataWords,"", "income");
-            }
-
-            else if (table.select("tr").text().toLowerCase().contains("income")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("income")) {
+                return processTable(table, incomeDataWords, "", "income");
+            } else if (table.select("tr").text().toLowerCase().contains("income")) {
                 return processTable(table, incomeDataWords, "", "income");
             }
         }
@@ -151,19 +147,13 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("cashflow")){
-                return processTable(table,cashFlowWords,"", "cashflow");
-            }
-
-            else if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("cash flow")){
-                return processTable(table,cashFlowWords,"", "cashflow");
-            }
-
-            else if (table.select("tr").text().toLowerCase().contains("cash flow")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("cashflow")) {
                 return processTable(table, cashFlowWords, "", "cashflow");
-            }
-
-            else if (table.select("tr").text().toLowerCase().contains("cashflow")){
+            } else if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().startsWith("cash flow")) {
+                return processTable(table, cashFlowWords, "", "cashflow");
+            } else if (table.select("tr").text().toLowerCase().contains("cash flow")) {
+                return processTable(table, cashFlowWords, "", "cashflow");
+            } else if (table.select("tr").text().toLowerCase().contains("cashflow")) {
                 return processTable(table, cashFlowWords, "", "cashflow");
             }
         }
@@ -175,11 +165,9 @@ public class Parser {
 
             int firstNonEmptyCell = getFirstNonEmptyCell(0, table);
 
-            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("equity and liabilities")){
-                return processTable(table,liabilitiesDataWords,"total equity and liabilities", "liabilities");
-            }
-
-            else if (table.select("tr").text().toLowerCase().contains("equity and liabilities")){
+            if (table.select("tr").get(firstNonEmptyCell).select("td").first().text().toLowerCase().contains("equity and liabilities")) {
+                return processTable(table, liabilitiesDataWords, "total equity and liabilities", "liabilities");
+            } else if (table.select("tr").text().toLowerCase().contains("equity and liabilities")) {
                 return processTable(table, liabilitiesDataWords, "total equity and liabilities", "liabilities");
             }
 
@@ -188,15 +176,15 @@ public class Parser {
         return null;
     }
 
-    private int getFirstNonEmptyCell(int counter, Element table ){
-        if (table.select("tr").get(counter).select("td").first().text().trim().isEmpty()){
-            counter = getFirstNonEmptyCell(counter+1, table);
+    private int getFirstNonEmptyCell(int counter, Element table) {
+        if (table.select("tr").get(counter).select("td").first().text().trim().isEmpty()) {
+            counter = getFirstNonEmptyCell(counter + 1, table);
         }
 
         return counter;
     }
 
-    private List<ReportItem> processTable(Element table, List<DataWord> dataWords, String endOfTable, String type){
+    private List<ReportItem> processTable(Element table, List<DataWord> dataWords, String endOfTable, String type) {
         List<String> head = new ArrayList<String>();
         List<ReportItem> matched = new ArrayList<ReportItem>();
 
@@ -208,7 +196,7 @@ public class Parser {
 
             String tdsString = tds.text();
 
-            if (!endOfTable.isEmpty() && tdsString.toLowerCase().trim().equals(endOfTable)){
+            if (!endOfTable.isEmpty() && tdsString.toLowerCase().trim().equals(endOfTable)) {
                 return matched;
             }
 
@@ -216,11 +204,9 @@ public class Parser {
             if (tdsString.toLowerCase().contains("note")) {
                 head.clear();
                 for (Element td : tds) {
-                    if (td.text().toLowerCase().contains("current")){
+                    if (td.text().toLowerCase().contains("current")) {
                         head.add(date);
-                    }
-
-                    else {
+                    } else {
                         head.add(td.text());
                     }
 
@@ -233,18 +219,18 @@ public class Parser {
                 ReportItem reportItem = null;
 
                 for (Element td : tds) {
-                    if (!isMatch ) {
+                    if (!isMatch) {
 
                         Elements tdText = td.select("p");
 
                         List<String> tdTextData = new ArrayList<>();
 
-                        for (Element e : tdText){
+                        for (Element e : tdText) {
                             tdTextData.add(e.text().toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim());
                         }
 
                         for (DataWord w : dataWords) {
-                            for (String textTrimmed :tdTextData){
+                            for (String textTrimmed : tdTextData) {
                                 if (textTrimmed.equals(w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim())) {
                                     reportItem = new ReportItem(textTrimmed);
                                     reportItem.setDataWord(w);
@@ -254,11 +240,11 @@ public class Parser {
                                 }
                             }
                         }
-                    } else if (isMatch){
+                    } else if (isMatch) {
                         reportItem.addValue(td.text().trim().replaceAll("[a-zA-Z]", "").toLowerCase());
                     }
 
-                    if (!isMatch&& td.text().equals(tds.first().text()) && !tds.first().text().trim().isEmpty() && !allMatched.stream().anyMatch((s) -> s.toLowerCase().equals(td.text().toLowerCase()))) {
+                    if (!isMatch && td.text().equals(tds.first().text()) && !tds.first().text().trim().isEmpty() && !allMatched.stream().anyMatch((s) -> s.toLowerCase().equals(td.text().toLowerCase()))) {
                         notMatched.add(td.text().toLowerCase());
                     }
                 }
@@ -271,27 +257,27 @@ public class Parser {
             }
         }
 
-        logger.info("Not Matched for "+ type +": ");
+        logger.info("Not Matched for " + type + ": ");
 
         for (String s : notMatched)
-            logger.info ( "  " +s );
+            logger.info("  " + s);
 
         return matched;
     }
 
-    private boolean totalAssetMatch (List<ReportItem> assets, String filename){
+    private boolean totalAssetMatch(List<ReportItem> assets, String filename) {
 
         if (assets == null) return false;
 
         Optional<ReportItem> first = assets.stream().filter(x -> x.getDescription().trim().toLowerCase().contains("total assets")).findFirst();
 
-        if(first.isPresent()) {
+        if (first.isPresent()) {
             HashMap<String, String> yearlyValues = first.get().getYearlyValues();
 
             List<HashMap<String, String>> rest = assets.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total assets")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
 
-            List<TotalReport>  reports = yearlyValues.keySet().stream().map(key -> {
+            List<TotalReport> reports = yearlyValues.keySet().stream().map(key -> {
 
                         TotalReport report = new TotalReport();
                         report.setYear(key);
@@ -320,9 +306,101 @@ public class Parser {
             appendToCSV(reports);
         }
 
-
-
         return false;
+    }
+
+
+    private void totalLiabilitiesMatch(List<ReportItem> liabilities, String filename) {
+
+        if (liabilities == null) return;
+
+
+        int totalEquityIndex = -1;
+        int totalLiabilitiesIndex = -1;
+        int totalEquityAndLiabilitiesIndex = -1;
+
+        for (int i = 0; i < liabilities.size(); i++) {
+            if (liabilities.get(i).getDescription().trim().toLowerCase().equals("total equity")) {
+                totalEquityIndex = i;
+            } else if (liabilities.get(i).getDescription().trim().toLowerCase().equals("total liabilities")) {
+                totalLiabilitiesIndex = i;
+            } else if (liabilities.get(i).getDescription().trim().toLowerCase().contains("total equity and liabilities")) {
+                totalEquityAndLiabilitiesIndex = i;
+            }
+        }
+
+        List<ReportItem> totalEquityList = liabilities.subList(0, totalEquityIndex+1);
+        List<ReportItem> totalLiabilitiesList = liabilities.subList(totalEquityIndex + 1, totalLiabilitiesIndex+1);
+        List<ReportItem> totalEquityAndLiabilitiesList = liabilities.subList(totalLiabilitiesIndex + 1, totalEquityAndLiabilitiesIndex);
+
+
+        HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
+        HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
+
+        List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total equity")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+        List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total liabilities")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+
+
+        List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {
+
+                    TotalReport report = new TotalReport();
+                    report.setYear(key);
+                    report.setDateProcessed(new Date());
+                    report.setDocumentName(filename);
+
+                    Double yearSum = equityYearlyRest.stream().mapToDouble(others -> {
+                        String restValue = others.getOrDefault(key, "0");
+                        restValue = restValue.replaceAll("[^0-9]", "").trim();
+                        if (restValue == null || restValue.isEmpty()) restValue = "0";
+                        return Double.parseDouble(restValue);
+                    }).sum();
+
+
+                    String actualSumString = equityYearlyValues.get(key);
+                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                    Double actualSum = Double.parseDouble(actualSumString);
+
+                    report.setActualTotal(actualSum);
+                    report.setCalculatedTotal(yearSum);
+                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                    return report;
+                }
+        ).collect(Collectors.toList());
+
+
+        List<TotalReport> liabilitiesReports = liabilitiesYearlyValues.keySet().stream().map(key -> {
+
+                    TotalReport report = new TotalReport();
+                    report.setYear(key);
+                    report.setDateProcessed(new Date());
+                    report.setDocumentName(filename);
+
+                    Double yearSum = liabilitiesYearlyRest.stream().mapToDouble(others -> {
+                        String restValue = others.getOrDefault(key, "0");
+                        restValue = restValue.replaceAll("[^0-9]", "").trim();
+                        if (restValue == null || restValue.isEmpty()) restValue = "0";
+                        return Double.parseDouble(restValue);
+                    }).sum();
+
+
+                    String actualSumString = equityYearlyValues.get(key);
+                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                    Double actualSum = Double.parseDouble(actualSumString);
+
+                    report.setActualTotal(actualSum);
+                    report.setCalculatedTotal(yearSum);
+                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                    return report;
+                }
+        ).collect(Collectors.toList());
+
+        appendToCSV(liabilitiesReports);
+        appendToCSV(equityReports);
+
+
+
     }
 
     private void appendToCSV(List<TotalReport>  reports){
