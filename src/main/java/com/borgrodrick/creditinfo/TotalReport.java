@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.Date;
 
-@JsonPropertyOrder({"documentName","year","actualTotal","calculatedTotal","matched","dateProcessed"})
+@JsonPropertyOrder({"documentName","year","actualTotal","calculatedTotal","matched","dateProcessed", })
 public class TotalReport {
 
     public  TotalReport (){}
@@ -60,10 +60,14 @@ public class TotalReport {
         this.dateProcessed = dateProcessed;
     }
 
+    public String getType() { return type;}
+
+    public void setType(String type) {  this.type = type; }
     public String documentName;
     public String year;
     public Double actualTotal;
     public Double calculatedTotal;
     public boolean matched;
     public Date dateProcessed;
+    public String type;
 }

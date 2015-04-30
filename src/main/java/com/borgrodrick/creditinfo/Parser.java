@@ -300,6 +300,7 @@ public class Parser {
                         report.setActualTotal(actualSum);
                         report.setCalculatedTotal(yearSum);
                         report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                        report.setType("Assets");
                         return report;
                     }
             ).collect(Collectors.toList());
@@ -329,76 +330,85 @@ public class Parser {
             }
         }
 
-        List<ReportItem> totalEquityList = liabilities.subList(0, totalEquityIndex+1);
-        List<ReportItem> totalLiabilitiesList = liabilities.subList(totalEquityIndex + 1, totalLiabilitiesIndex+1);
-        List<ReportItem> totalEquityAndLiabilitiesList = liabilities.subList(totalLiabilitiesIndex + 1, totalEquityAndLiabilitiesIndex);
+        if (totalEquityIndex == -1) return;
+        if (totalLiabilitiesIndex == -1) return;
+        if (totalEquityAndLiabilitiesIndex == -1) return;
+
+        try {
+            List<ReportItem> totalEquityList = liabilities.subList(0, totalEquityIndex + 1);
+            List<ReportItem> totalLiabilitiesList = liabilities.subList(totalEquityIndex + 1, totalLiabilitiesIndex + 1);
+            List<ReportItem> totalEquityAndLiabilitiesList = liabilities.subList(totalLiabilitiesIndex + 1, totalEquityAndLiabilitiesIndex);
 
 
-        HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
-        HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
+            HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
+            HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
 
-        List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total equity")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
-        List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total liabilities")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
-
-
-        List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {
-
-                    TotalReport report = new TotalReport();
-                    report.setYear(key);
-                    report.setDateProcessed(new Date());
-                    report.setDocumentName(filename);
-
-                    Double yearSum = equityYearlyRest.stream().mapToDouble(others -> {
-                        String restValue = others.getOrDefault(key, "0");
-                        restValue = restValue.replaceAll("[^0-9]", "").trim();
-                        if (restValue == null || restValue.isEmpty()) restValue = "0";
-                        return Double.parseDouble(restValue);
-                    }).sum();
+            List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total equity")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+            List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total liabilities")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
 
-                    String actualSumString = equityYearlyValues.get(key);
-                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
-                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
-                    Double actualSum = Double.parseDouble(actualSumString);
+            List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {
 
-                    report.setActualTotal(actualSum);
-                    report.setCalculatedTotal(yearSum);
-                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
-                    return report;
-                }
-        ).collect(Collectors.toList());
+                        TotalReport report = new TotalReport();
+                        report.setYear(key);
+                        report.setDateProcessed(new Date());
+                        report.setDocumentName(filename);
 
-
-        List<TotalReport> liabilitiesReports = liabilitiesYearlyValues.keySet().stream().map(key -> {
-
-                    TotalReport report = new TotalReport();
-                    report.setYear(key);
-                    report.setDateProcessed(new Date());
-                    report.setDocumentName(filename);
-
-                    Double yearSum = liabilitiesYearlyRest.stream().mapToDouble(others -> {
-                        String restValue = others.getOrDefault(key, "0");
-                        restValue = restValue.replaceAll("[^0-9]", "").trim();
-                        if (restValue == null || restValue.isEmpty()) restValue = "0";
-                        return Double.parseDouble(restValue);
-                    }).sum();
+                        Double yearSum = equityYearlyRest.stream().mapToDouble(others -> {
+                            String restValue = others.getOrDefault(key, "0");
+                            restValue = restValue.replaceAll("[^0-9]", "").trim();
+                            if (restValue == null || restValue.isEmpty()) restValue = "0";
+                            return Double.parseDouble(restValue);
+                        }).sum();
 
 
-                    String actualSumString = equityYearlyValues.get(key);
-                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
-                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
-                    Double actualSum = Double.parseDouble(actualSumString);
+                        String actualSumString = equityYearlyValues.get(key);
+                        actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                        if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                        Double actualSum = Double.parseDouble(actualSumString);
 
-                    report.setActualTotal(actualSum);
-                    report.setCalculatedTotal(yearSum);
-                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
-                    return report;
-                }
-        ).collect(Collectors.toList());
+                        report.setActualTotal(actualSum);
+                        report.setCalculatedTotal(yearSum);
+                        report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                        report.setType("Equity");
+                        return report;
+                    }
+            ).collect(Collectors.toList());
 
-        appendToCSV(liabilitiesReports);
-        appendToCSV(equityReports);
 
+            List<TotalReport> liabilitiesReports = liabilitiesYearlyValues.keySet().stream().map(key -> {
+
+                        TotalReport report = new TotalReport();
+                        report.setYear(key);
+                        report.setDateProcessed(new Date());
+                        report.setDocumentName(filename);
+
+                        Double yearSum = liabilitiesYearlyRest.stream().mapToDouble(others -> {
+                            String restValue = others.getOrDefault(key, "0");
+                            restValue = restValue.replaceAll("[^0-9]", "").trim();
+                            if (restValue == null || restValue.isEmpty()) restValue = "0";
+                            return Double.parseDouble(restValue);
+                        }).sum();
+
+
+                        String actualSumString = liabilitiesYearlyValues.get(key);
+                        actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                        if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                        Double actualSum = Double.parseDouble(actualSumString);
+
+                        report.setActualTotal(actualSum);
+                        report.setCalculatedTotal(yearSum);
+                        report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                        report.setType("liabilities");
+                        return report;
+                    }
+            ).collect(Collectors.toList());
+
+            appendToCSV(liabilitiesReports);
+            appendToCSV(equityReports);
+        }catch (Exception e){
+
+        }
 
 
     }
