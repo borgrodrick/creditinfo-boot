@@ -200,19 +200,26 @@ public class Parser {
                 return matched;
             }
 
-            //check for table head
-            if (tdsString.toLowerCase().contains("note")) {
-                head.clear();
-                for (Element td : tds) {
-                    if (td.text().toLowerCase().contains("current")) {
-                        head.add(date);
-                    } else {
-                        head.add(td.text());
-                    }
-
-                }
-                if (head.size() > 0) head.remove(0);
+            if (head.isEmpty()){
+                head = dateExtractor.getAllDate(tdsString);
             }
+
+
+//            //check for table head
+//            if (tdsString.toLowerCase().contains("note")) {
+//                head.clear();
+//                for (Element td : tds) {
+//                    if (td.text().toLowerCase().contains("current")) {
+//                        head.add(date);
+//                    } else {
+//                        head.add(td.text());
+//                    }
+//
+//                }
+//                if (head.size() > 0) head.remove(0);
+//            }
+
+
             //check for rest
             else {
                 boolean isMatch = false;
@@ -236,7 +243,7 @@ public class Parser {
                                     reportItem.setDataWord(w);
                                     allMatched.add(w.getDescription().toLowerCase());
                                     isMatch = true;
-                                    reportItem.setTableHead(new ArrayList<String>(head));
+                                    reportItem.setTableHead(head);
                                 }
                             }
                         }
@@ -274,7 +281,7 @@ public class Parser {
         if (first.isPresent()) {
             HashMap<String, String> yearlyValues = first.get().getYearlyValues();
 
-            List<HashMap<String, String>> rest = assets.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total assets")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+            List<HashMap<String, String>> rest = assets.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
 
             List<TotalReport> reports = yearlyValues.keySet().stream().map(key -> {
@@ -343,8 +350,8 @@ public class Parser {
             HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
             HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
 
-            List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total equity")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
-            List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total liabilities")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+            List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+            List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
 
             List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {

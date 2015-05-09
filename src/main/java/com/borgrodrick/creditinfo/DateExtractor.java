@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 @Component()
 @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
@@ -72,6 +73,23 @@ public class DateExtractor {
         else{
             return timexAnnsAll.get(1).toString();
         }
+
+
+
+    }
+
+    public List<String> getAllDate(String input) {
+
+
+
+
+        Annotation annotation = new Annotation(input);
+        annotation.set(CoreAnnotations.DocDateAnnotation.class, SUTime.getCurrentTime().toString());
+        pipeline.annotate(annotation);
+
+        List<CoreMap> timexAnnsAll = annotation.get(TimeAnnotations.TimexAnnotations.class);
+
+        return timexAnnsAll.stream().map(x-> x.toString()).collect(Collectors.toList());
 
 
 

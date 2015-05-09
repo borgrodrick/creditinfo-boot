@@ -73,6 +73,13 @@ public class ReportItem {
             }
         }
 
+        else if( tableHead.size() +1 == value.size()){
+            for (int i = 0; i < tableHead.size(); i++) {
+                int j = i+1;
+                yearlyValues.put(tableHead.get(i).replaceAll("[^\\w\\s]","").trim(), value.get(j).replaceAll("[^\\w\\s]","").trim());
+            }
+        }
+
         if (tableHead.get(0).toLowerCase().contains("note")){
             this.noteId = value.get(0);
             if (yearlyValues.containsKey(tableHead.get(0))){
