@@ -189,6 +189,7 @@ public class Parser {
         List<ReportItem> matched = new ArrayList<ReportItem>();
 
         List<String> notMatched = new ArrayList<String>();
+        boolean isend = false;
 
         for (Element row : table.select("tr")) {
 
@@ -196,8 +197,8 @@ public class Parser {
 
             String tdsString = tds.text();
 
-            if (!endOfTable.isEmpty() && tdsString.toLowerCase().trim().equals(endOfTable)) {
-                return matched;
+            if (!endOfTable.isEmpty() && tdsString.toLowerCase().trim().contains(endOfTable)) {
+                isend = true;
             }
 
             if (head.isEmpty()){
@@ -237,8 +238,9 @@ public class Parser {
                         }
 
                         for (DataWord w : dataWords) {
+                            String datawordString = w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim();
                             for (String textTrimmed : tdTextData) {
-                                if (textTrimmed.equals(w.Description.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim())) {
+                                if (textTrimmed.equals(datawordString) || textTrimmed.startsWith(datawordString) ||textTrimmed.endsWith(datawordString)){
                                     reportItem = new ReportItem(textTrimmed);
                                     reportItem.setDataWord(w);
                                     allMatched.add(w.getDescription().toLowerCase());
@@ -248,7 +250,17 @@ public class Parser {
                             }
                         }
                     } else if (isMatch) {
-                        reportItem.addValue(td.text().trim().replaceAll("[a-zA-Z]", "").toLowerCase());
+
+                        String value = "";
+
+                        if (td.select("p").size() == 0){
+                            value = td.text().trim().replaceAll("[a-zA-Z]", "");
+                        }
+                        else {
+                            value = td.select("p").first().text().trim().replaceAll("[a-zA-Z]", "");
+                        }
+
+                        reportItem.addValue(value);
                     }
 
                     if (!isMatch && td.text().equals(tds.first().text()) && !tds.first().text().trim().isEmpty() && !allMatched.stream().anyMatch((s) -> s.toLowerCase().equals(td.text().toLowerCase()))) {
@@ -262,6 +274,8 @@ public class Parser {
                     reportItem.populateMapping();
                 }
             }
+
+            if (isend) return matched;
         }
 
         logger.info("Not Matched for " + type + ": ");
