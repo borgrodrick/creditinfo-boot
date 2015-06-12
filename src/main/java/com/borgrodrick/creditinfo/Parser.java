@@ -80,7 +80,11 @@ public class Parser {
             totalAssetMatch(reportItemsAssets, input.getName());
 
             List<ReportItem> reportItemsLiabilities = processLiabilities(doc.select("table"), liabilities);
+
+
             totalLiabilitiesMatch(reportItemsLiabilities, input.getName());
+
+
             List<ReportItem> reportItemsIncome = processIncome(doc.select("table"), income);
             List<ReportItem> reportItemsCashflow = processCashflow(doc.select("table"), cashflow);
 
@@ -336,103 +340,101 @@ public class Parser {
 
         if (liabilities == null) return;
 
-
         int totalEquityIndex = -1;
         int totalLiabilitiesIndex = -1;
-        int totalEquityAndLiabilitiesIndex = -1;
 
         for (int i = 0; i < liabilities.size(); i++) {
             if (liabilities.get(i).getDescription().trim().toLowerCase().equals("total equity")) {
                 totalEquityIndex = i;
             } else if (liabilities.get(i).getDescription().trim().toLowerCase().equals("total liabilities")) {
                 totalLiabilitiesIndex = i;
-            } else if (liabilities.get(i).getDescription().trim().toLowerCase().contains("total equity and liabilities")) {
-                totalEquityAndLiabilitiesIndex = i;
             }
         }
 
         if (totalEquityIndex == -1) return;
         if (totalLiabilitiesIndex == -1) return;
-        if (totalEquityAndLiabilitiesIndex == -1) return;
 
-        try {
-            List<ReportItem> totalEquityList = liabilities.subList(0, totalEquityIndex + 1);
-            List<ReportItem> totalLiabilitiesList = liabilities.subList(totalEquityIndex + 1, totalLiabilitiesIndex + 1);
-            List<ReportItem> totalEquityAndLiabilitiesList = liabilities.subList(totalLiabilitiesIndex + 1, totalEquityAndLiabilitiesIndex);
+        List<ReportItem> totalEquityList = liabilities.subList(0, totalEquityIndex + 1);
+        List<ReportItem> totalLiabilitiesList = liabilities.subList(totalEquityIndex + 1, totalLiabilitiesIndex + 1);
 
+        HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
+        HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
 
-            HashMap<String, String> equityYearlyValues = liabilities.get(totalEquityIndex).getYearlyValues();
-            HashMap<String, String> liabilitiesYearlyValues = liabilities.get(totalLiabilitiesIndex).getYearlyValues();
-
-            List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
-            List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+        List<HashMap<String, String>> equityYearlyRest = totalEquityList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
+        List<HashMap<String, String>> liabilitiesYearlyRest = totalLiabilitiesList.stream().filter(x -> !x.getDescription().trim().toLowerCase().contains("total")).map(ReportItem::getYearlyValues).collect(Collectors.toList());
 
 
-            List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {
-
-                        TotalReport report = new TotalReport();
-                        report.setYear(key);
-                        report.setDateProcessed(new Date());
-                        report.setDocumentName(filename);
-
-                        Double yearSum = equityYearlyRest.stream().mapToDouble(others -> {
-                            String restValue = others.getOrDefault(key, "0");
-                            restValue = restValue.replaceAll("[^0-9]", "").trim();
-                            if (restValue == null || restValue.isEmpty()) restValue = "0";
-                            return Double.parseDouble(restValue);
-                        }).sum();
-
-
-                        String actualSumString = equityYearlyValues.get(key);
-                        actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
-                        if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
-                        Double actualSum = Double.parseDouble(actualSumString);
-
-                        report.setActualTotal(actualSum);
-                        report.setCalculatedTotal(yearSum);
-                        report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
-                        report.setType("Equity");
-                        return report;
-                    }
-            ).collect(Collectors.toList());
-
-
-            List<TotalReport> liabilitiesReports = liabilitiesYearlyValues.keySet().stream().map(key -> {
-
-                        TotalReport report = new TotalReport();
-                        report.setYear(key);
-                        report.setDateProcessed(new Date());
-                        report.setDocumentName(filename);
-
-                        Double yearSum = liabilitiesYearlyRest.stream().mapToDouble(others -> {
-                            String restValue = others.getOrDefault(key, "0");
-                            restValue = restValue.replaceAll("[^0-9]", "").trim();
-                            if (restValue == null || restValue.isEmpty()) restValue = "0";
-                            return Double.parseDouble(restValue);
-                        }).sum();
-
-
-                        String actualSumString = liabilitiesYearlyValues.get(key);
-                        actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
-                        if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
-                        Double actualSum = Double.parseDouble(actualSumString);
-
-                        report.setActualTotal(actualSum);
-                        report.setCalculatedTotal(yearSum);
-                        report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
-                        report.setType("liabilities");
-                        return report;
-                    }
-            ).collect(Collectors.toList());
-
-            appendToCSV(liabilitiesReports);
-            appendToCSV(equityReports);
-        }catch (Exception e){
-
-        }
-
+        processEquityReport(equityYearlyValues,equityYearlyRest, filename );
+        processLiabilitiesReport(liabilitiesYearlyValues,liabilitiesYearlyRest, filename );
 
     }
+
+    private void processEquityReport(HashMap<String, String> equityYearlyValues, List<HashMap<String, String>> equityYearlyRest, String filename ){
+        List<TotalReport> equityReports = equityYearlyValues.keySet().stream().map(key -> {
+
+                    TotalReport report = new TotalReport();
+                    report.setYear(key);
+                    report.setDateProcessed(new Date());
+                    report.setDocumentName(filename);
+
+                    Double yearSum = equityYearlyRest.stream().mapToDouble(others -> {
+                        String restValue = others.getOrDefault(key, "0");
+                        restValue = restValue.replaceAll("[^0-9]", "").trim();
+                        if (restValue == null || restValue.isEmpty()) restValue = "0";
+                        return Double.parseDouble(restValue);
+                    }).sum();
+
+
+                    String actualSumString = equityYearlyValues.get(key);
+                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                    Double actualSum = Double.parseDouble(actualSumString);
+
+                    report.setActualTotal(actualSum);
+                    report.setCalculatedTotal(yearSum);
+                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                    report.setType("Equity");
+                    return report;
+                }
+        ).collect(Collectors.toList());
+
+        appendToCSV(equityReports);
+    }
+
+
+    private void processLiabilitiesReport(HashMap<String, String> liabilitiesYearlyValues, List<HashMap<String, String>> liabilitiesYearlyRest, String filename){
+        List<TotalReport> liabilitiesReports = liabilitiesYearlyValues.keySet().stream().map(key -> {
+
+                    TotalReport report = new TotalReport();
+                    report.setYear(key);
+                    report.setDateProcessed(new Date());
+                    report.setDocumentName(filename);
+
+                    Double yearSum = liabilitiesYearlyRest.stream().mapToDouble(others -> {
+                        String restValue = others.getOrDefault(key, "0");
+                        restValue = restValue.replaceAll("[^0-9]", "").trim();
+                        if (restValue == null || restValue.isEmpty()) restValue = "0";
+                        return Double.parseDouble(restValue);
+                    }).sum();
+
+
+                    String actualSumString = liabilitiesYearlyValues.get(key);
+                    actualSumString = actualSumString.replaceAll("[^0-9]", "").trim();
+                    if (actualSumString == null || actualSumString.isEmpty()) actualSumString = "0";
+                    Double actualSum = Double.parseDouble(actualSumString);
+
+                    report.setActualTotal(actualSum);
+                    report.setCalculatedTotal(yearSum);
+                    report.setMatched(Double.doubleToLongBits(actualSum) == Double.doubleToLongBits(yearSum));
+                    report.setType("liabilities");
+                    return report;
+                }
+        ).collect(Collectors.toList());
+
+        appendToCSV(liabilitiesReports);
+    }
+
+
 
     private void appendToCSV(List<TotalReport>  reports){
         // create mapper and schema
